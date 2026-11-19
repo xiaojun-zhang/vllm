@@ -1,0 +1,13 @@
+# Additional MP dependencies for the released LMCache XPU wheel.
+# The remaining dependencies are provided by requirements/test/xpu.txt.
+# Keep grpcio and OpenTelemetry versions aligned with that XPU environment.
+aiofile==3.12.3
+aiofiles==25.1.0
+awscrt==0.38.2
+caio==0.12.10
+google-cloud-bigtable==2.50.2
+google-cloud-monitoring==2.32.0
+grpc-google-iam-v1==0.14.6
+grpcio-observability==1.83.0
+grpcio-status==1.83.0
+opentelemetry-exporter-prometheus==0.66b2

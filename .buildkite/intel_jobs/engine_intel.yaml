@@ -2,6 +2,42 @@ group: Engine Intel
 depends_on:
   - image-build-xpu
 steps:
+- label: ":intel: (BMG) LMCache MP"
+  key: lmcache-mp-xpu
+  timeout_in_minutes: 20
+  device: intel_gpu
+  agent_tags:
+    label: production
+    gpu: 1+
+    mem: 16+
+  no_plugin: true
+  working_dir: "."
+  env:
+    REGISTRY: "public.ecr.aws/q9t5s3a7"
+    REPO: "vllm-ci-test-repo"
+    VLLM_TEST_DEVICE: "xpu"
+  source_file_dependencies:
+    - .buildkite/intel_jobs/engine_intel.yaml
+    - docker/Dockerfile.xpu
+    - requirements/lmcache_xpu.txt
+    - requirements/xpu.txt
+    - requirements/test/xpu.txt
+    - vllm/config/
+    - vllm/distributed/kv_transfer/
+    - vllm/v1/core/
+    - vllm/v1/kv_cache_interface.py
+    - vllm/v1/kv_cache_layout.py
+    - vllm/v1/worker/
+    - vllm/platforms/xpu.py
+    - tests/v1/kv_connector/lmcache_integration/
+    - tests/utils.py
+  commands:
+    - >-
+      bash .buildkite/scripts/hardware_ci/run-intel-test.sh
+      'cd tests &&
+      /opt/venv/bin/python -m pytest -v -s
+      v1/kv_connector/lmcache_integration/test_xpu_mp.py'
+
 - label: ":intel: (BMG) Engine"
   key: engine
   timeout_in_minutes: 40
