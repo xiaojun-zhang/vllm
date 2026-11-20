@@ -227,11 +227,12 @@ ENV LMCACHE_DEVICE_BACKEND=xpu \
     LMCACHE_MP_TRANSFER_MODE=engine_driven
 
 # The released wheel's metadata includes CUDA dependencies and older telemetry
-# pins. Install the validated MP dependencies without replacing the XPU stack.
+# pins. Align MP metrics with the XPU stack; storage backends remain optional.
 # Auto-detect during native imports so the build does not require a GPU.
 RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,src=requirements/lmcache_xpu.txt,target=/tmp/lmcache_xpu.txt \
-    uv pip install --no-deps --only-binary=:all: -r /tmp/lmcache_xpu.txt && \
+    uv pip install --no-deps --only-binary=:all: \
+        grpcio-observability==1.83.0 \
+        opentelemetry-exporter-prometheus==0.66b2 && \
     LMCACHE_XPU_WHEEL="lmcache-${LMCACHE_XPU_VERSION}+xpu-cp312-cp312-manylinux_2_35_x86_64.whl" && \
     curl --fail --location --retry 3 \
         "https://github.com/LMCache/LMCache/releases/download/v${LMCACHE_XPU_VERSION}-xpu/lmcache-${LMCACHE_XPU_VERSION}%2Bxpu-cp312-cp312-manylinux_2_35_x86_64.whl" \

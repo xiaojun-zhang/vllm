@@ -122,6 +122,9 @@ for Python 3.12 on Linux x86-64. This is a release candidate. XPU supports
 the separate-server `LMCacheMPConnector`; in-process `LMCacheConnectorV1`
 is not supported by this image.
 
+The image includes dependencies for memory-backed MP caching and metrics.
+Filesystem, S3, and Bigtable storage backends require additional dependencies.
+
 Use the XPU connector module shown below to bridge the released wheel's MP
 protocol to the current vLLM KV-cache interface. This connector supports one
 full-attention KV-cache group with unquantized FP16 or BF16 KV caches.

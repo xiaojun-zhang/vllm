@@ -19,7 +19,6 @@ steps:
   source_file_dependencies:
     - .buildkite/intel_jobs/engine_intel.yaml
     - docker/Dockerfile.xpu
-    - requirements/lmcache_xpu.txt
     - requirements/xpu.txt
     - requirements/test/xpu.txt
     - vllm/config/
