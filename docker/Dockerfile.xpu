@@ -182,6 +182,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM vllm-base AS vllm-openai
 ENV UV_COMPILE_BYTECODE=1
 
+ARG LMCACHE_XPU_VERSION=0.5.8
+ARG LMCACHE_XPU_SHA256=d07175994354588cb9401ae959c913ab07fe451ae9bea2ce1819c3d80949e00d
+
 # Must match the ucx-nixl-build stage above: ARG does not cross stages, so a stale
 # value here installs a meta package that disagrees with the wheel built there.
 ARG NIXL_VERSION=v1.5.0
@@ -219,6 +222,26 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install grpcio-tools protobuf nanobind && \
     uv pip install -r /vllm-workspace/requirements/xpu.txt && \
     uv pip install --no-build-isolation -r /vllm-workspace/requirements/test/xpu.txt
+
+ENV LMCACHE_DEVICE_BACKEND=xpu \
+    LMCACHE_MP_TRANSFER_MODE=engine_driven
+
+# The released wheel's metadata includes CUDA dependencies and older telemetry
+# pins. Align MP metrics with the XPU stack; storage backends remain optional.
+# Auto-detect during native imports so the build does not require a GPU.
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv pip install --no-deps --only-binary=:all: \
+        grpcio-observability==1.83.0 \
+        opentelemetry-exporter-prometheus==0.66b2 && \
+    LMCACHE_XPU_WHEEL="lmcache-${LMCACHE_XPU_VERSION}+xpu-cp312-cp312-manylinux_2_35_x86_64.whl" && \
+    curl --fail --location --retry 3 \
+        "https://github.com/LMCache/LMCache/releases/download/v${LMCACHE_XPU_VERSION}-xpu/lmcache-${LMCACHE_XPU_VERSION}%2Bxpu-cp312-cp312-manylinux_2_35_x86_64.whl" \
+        --output "/tmp/${LMCACHE_XPU_WHEEL}" && \
+    printf '%s  /tmp/%s\n' "${LMCACHE_XPU_SHA256}" "${LMCACHE_XPU_WHEEL}" | sha256sum --check - && \
+    uv pip install --no-deps --no-index --no-build "/tmp/${LMCACHE_XPU_WHEEL}" && \
+    rm "/tmp/${LMCACHE_XPU_WHEEL}" && \
+    env -u LMCACHE_DEVICE_BACKEND uv run --no-project --active /opt/venv/bin/python -c \
+        "import lmcache.xpu_ops, lmcache.lmcache_native, lmcache.lmcache_fs, lmcache.lmcache_redis"
 
 # Keep source-dependent layers near the end so frequent code-only changes
 # don't invalidate heavy dependency and UCX/NIXL layers.
