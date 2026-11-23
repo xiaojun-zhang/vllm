@@ -62,7 +62,6 @@ def _mp_args(port, prefix_caching=False):
         "kv_connector_extra_config": {
             "lmcache.mp.host": "tcp://127.0.0.1",
             "lmcache.mp.port": port,
-            "lmcache.mp.use_vmm_api": False,
         },
     }
     args = SERVER_ARGS + ["--kv-transfer-config", json.dumps(connector)]
@@ -232,7 +231,7 @@ async def _wait_request_counts(server, expected):
 
 @pytest.mark.asyncio
 async def test_mp_survives_aborting_a_queued_request(reference, tmp_path):
-    """Aborting before a cache lookup must release the request without a crash."""
+    """A queued request can ask for cache stats and be cancelled before lookup."""
     prompt, baseline = reference
     with _cache_server(tmp_path, "inline") as port:
         env = {**SERVER_ENV, "VLLM_SERVER_DEV_MODE": "1"}
@@ -246,7 +245,10 @@ async def test_mp_survives_aborting_a_queued_request(reference, tmp_path):
                         max_tokens=1400,
                         temperature=0,
                         seed=0,
-                        extra_body={"ignore_eos": True},
+                        extra_body={
+                            "ignore_eos": True,
+                            "kv_transfer_params": {"cached_token_stats": {}},
+                        },
                     )
 
                 tasks = [asyncio.create_task(generate())]

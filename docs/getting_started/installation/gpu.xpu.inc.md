@@ -116,25 +116,23 @@ checkout and default working directory.
 
 #### LMCache MP
 
-Images built from `docker/Dockerfile.xpu` include the official `lmcache==0.5.8rc1+xpu`
-[released wheel](https://github.com/LMCache/LMCache/releases/tag/v0.5.8rc1-xpu)
-for Python 3.12 on Linux x86-64. This is a release candidate. XPU supports
-the separate-server `LMCacheMPConnector`; in-process `LMCacheConnectorV1`
-is not supported by this image.
+Images built from `docker/Dockerfile.xpu` include the official `lmcache==0.5.8+xpu`
+[released wheel](https://github.com/LMCache/LMCache/releases/tag/v0.5.8-xpu)
+for Python 3.12 on Linux x86-64. The image supports LMCache in multiprocess
+mode through `LMCacheMPConnector` with a separate cache server.
 
 The image includes dependencies for memory-backed MP caching and metrics.
 Filesystem, S3, and Bigtable storage backends require additional dependencies.
 
-Use the XPU connector module shown below to bridge the released wheel's MP
-protocol to the current vLLM KV-cache interface. This connector supports one
-full-attention KV-cache group with unquantized FP16 or BF16 KV caches.
-Hybrid models and decode context parallelism are not supported.
+Use the XPU connector module shown below to run LMCache's MP connector with
+XPU KV transfers. It supports one full-attention KV-cache group with
+unquantized FP16 or BF16 KV caches and a decode context parallel size of 1.
 
 Use a tag built with this LMCache integration for the commands below.
 
 The image sets `LMCACHE_DEVICE_BACKEND=xpu` and
-`LMCACHE_MP_TRANSFER_MODE=engine_driven`. Start an LMCache server on the same
-host:
+`LMCACHE_MP_TRANSFER_MODE=engine_driven`. Start the LMCache server on the same
+host.
 
 ```bash
 docker run --rm --name lmcache-xpu \
@@ -149,7 +147,7 @@ docker run --rm --name lmcache-xpu \
     --shm-name lmcache-xpu
 ```
 
-Then start vLLM with the MP connector:
+Then start vLLM with the MP connector.
 
 ```bash
 docker run --rm \
@@ -166,15 +164,13 @@ docker run --rm \
         "kv_role": "kv_both",
         "kv_connector_extra_config": {
             "lmcache.mp.host": "tcp://127.0.0.1",
-            "lmcache.mp.port": 5555,
-            "lmcache.mp.use_vmm_api": false
+            "lmcache.mp.port": 5555
         }
     }'
 ```
 
-Set `lmcache.mp.use_vmm_api` to `false` because XPU uses engine-driven KV
-transfer without POSIX file descriptor export. Shared-memory transfer needs
-the cache server and vLLM to share an IPC namespace, as in the example above.
+Shared-memory transfer needs the cache server and vLLM to share an IPC
+namespace, as in the example above.
 For inline transfer, omit the server's `--shm-name` option; the containers
 can then use separate IPC namespaces.
 
